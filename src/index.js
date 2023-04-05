@@ -91,6 +91,8 @@ async function run() {
     core.info(`Skipping empty releases is "${skipEmptyRelease ? 'enabled' : 'disabled'}"`)
     core.info(`Skipping the update of the version file is "${skipVersionFile ? 'enabled' : 'disabled'}"`)
 
+    await git.init()
+
     if (!skipGitPull) {
       core.info('Pull to make sure we have the full git history')
       await git.fetch(gitPullDepth)
@@ -285,7 +287,7 @@ async function run() {
 
       try {
         // If we are running in test mode we use this to validate everything still runs
-        git.testHistory(gitBranch, gitReleaseBranch)
+        await git.testHistory(gitBranch, gitReleaseBranch)
       } catch (error) {
         console.error(error)
         core.setFailed(error)

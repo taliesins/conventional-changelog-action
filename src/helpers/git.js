@@ -8,7 +8,7 @@ module.exports = new (class Git {
 
   commandsRun = []
 
-  constructor() {
+  init = async() => {
     const githubToken = core.getInput('github-token')
 
     // Make the Github token secret
@@ -32,12 +32,13 @@ module.exports = new (class Git {
     }
 
     // Set config
-    this.config('user.name', gitUserName)
-    this.config('user.email', gitUserEmail)
+    await this.config('user.name', gitUserName)
+    await this.config('user.email', gitUserEmail)
 
     // Update the origin
     if (githubToken) {
-      this.updateGitHubOrigin(githubToken, `${gitUrl}/${GITHUB_REPOSITORY}.git`)
+      await this.updateGitHubOrigin(githubToken, `${gitUrl}/${GITHUB_REPOSITORY}.git`)
+      await this.addGithubTokenAuthorization(githubToken)
     }
   }
 
@@ -92,16 +93,14 @@ module.exports = new (class Git {
    *
    * @return {Promise<>}
    */
-  commit = (message) => (
-    this.exec(`commit -m "${message}"`)
-  )
+  commit = (message) => this.exec(`commit -m "${message}"`)
 
   /**
    * Pull the full history
    *
    * @return {Promise<>}
    */
-  pull = async () => {
+  pull = async() => {
     const args = ['pull']
 
     // Check if the repo is unshallow
@@ -145,9 +144,9 @@ module.exports = new (class Git {
   /**
    * Check if the repo is shallow
    *
-   * @return {Promise<>}
+   * @return {Promise<boolean>}
    */
-  isShallow = async () => {
+  isShallow = async() => {
     if (ENV === 'dont-use-git') {
       return false
     }
@@ -160,7 +159,7 @@ module.exports = new (class Git {
     /**
    * Check if the repo is shallow
    *
-   * @return {Promise<>}
+   * @return {Promise<boolean>}
    */
   hasChanges = async() => {
     let execOutput = ''
@@ -190,41 +189,44 @@ module.exports = new (class Git {
    * @param repo
    * @return {Promise<>}
    */
-  updateGitHubOrigin = (githubToken, gitUrl) => {
+  updateGitHubOrigin = async(githubToken, gitUrl) => {
     if (githubToken) {
       const username = `x-access-token`
-      this.addGithubTokenAuthorization(username, githubToken)
       return this.exec(`remote set-url origin https://${username}:${githubToken}@${gitUrl}`)
     } else {
       return this.exec(`remote set-url origin https://${gitUrl}`)
     }
   }
 
-  addGithubTokenAuthorization = (username, githubToken) => {
+  addGithubTokenAuthorization = async(githubToken) => {
+    const username = `x-access-token`
+    const configKey = `http.https://github.com/.extraheader`
+    const globalConfig = false
+    core.warning(`Before checking key ${configKey}`)
+    const configExists = await this.configExists(configKey, globalConfig)
+    core.warning(`After checking key ${configKey}`)
+    if (configExists){
+      core.warning(`Removing authorization header ${configKey}`)
+
+      core.warning(`Before deleting key ${configKey}`)
+      await this.configUnset(configKey, globalConfig)
+      core.warning(`After deleting key ${configKey}`)
+    }
+
     const credentials = Buffer.from(`${username}:${githubToken}`, `utf8`).toString('base64')
     core.setSecret(credentials)
-
-    const configKey = `http.https://github.com/.extraheader`
     const configValue = `AUTHORIZATION: basic ${credentials}`
-    const globalConfig = false
     const add = true
-    core.info(`before checking configKey`)
-    const configExists = this.configExists(configKey, globalConfig)
-    core.info(`entering loop`)
-    if (configExists){
-      core.warning(`Replacing authorization header ${configKey}`)
-      this.configUnset(configKey, globalConfig)
-      core.info(`after config set`)
-    }
-    this.configSet(configKey, configValue, globalConfig, add)
+    await this.configSet(configKey, configValue, globalConfig, add)
   }
 
   removeGithubTokenAuthorization = async()=> {
     const configKey = `http.https://github.com/.extraheader`
     const globalConfig = false
-    if (this.configExists(configKey, globalConfig)){
+    const configExists = await this.configExists(configKey, globalConfig)    
+    if (configExists){
       core.warning(`Removing authorization header ${configKey}`)
-      this.configUnset(configKey, globalConfig)
+      await this.configUnset(configKey, globalConfig)
     }
   }
   
@@ -252,7 +254,7 @@ module.exports = new (class Git {
    * @param globalConfig
    * @return {Promise<>}
    */
-  configExists = (configKey, globalConfig) => {
+  configExists = async(configKey, globalConfig) => {
     let execOutput = ''
 
     const options = {
@@ -266,13 +268,13 @@ module.exports = new (class Git {
     }
 
     const escapeConfigKey = this.regexEscape(configKey)
-    const exitCode = exec.exec(`git config ${globalConfig ? '--global' : '--local'} --name-only --get-regexp ${escapeConfigKey}`, null, options)
+    const exitCode = await exec.exec(`git config ${globalConfig ? '--global' : '--local'} --name-only --get-regexp ${escapeConfigKey}`, null, options)
 
-    if (execOutput.trim()){
+    if (exitCode != 0 && exitCode != 1){
       throw `Unable to determine git status: ${execOutput.trim()}`
     }
 
-    return exitCode == 0
+    return exitCode === 0
   } 
 
   /**
@@ -303,13 +305,14 @@ module.exports = new (class Git {
   /**
    * Validates the commands run
    */
-  testHistory = (branch, releaseBranch) => {
+  testHistory = async(branch, releaseBranch) => {
     if (ENV === 'dont-use-git') {
       const { EXPECTED_TAG, SKIPPED_COMMIT, EXPECTED_NO_PUSH, SKIPPED_RELEASE_BRANCH, SKIPPED_TAG, SKIPPED_PULL, SKIP_CI } = process.env
 
       const expectedCommands = [
         'git config user.name "Conventional Changelog Action"',
         'git config user.email "conventional.changelog.action@github.com"',
+        'git config --local --unset-all http.https://github.com/.extraheader',
       ]
 
       if (!SKIPPED_PULL) {
