@@ -1,3 +1,7 @@
+## [3.19.1](https://github.com/TriPSs/conventional-changelog-action/compare/v3.19.0...v3.19.1) (2023-04-25)
+
+
+
 # [3.19.0](https://github.com/TriPSs/conventional-changelog-action/compare/v3.8.5...v3.19.0) (2023-04-05)
 
 
@@ -36,10 +40,6 @@
 ### Bug Fixes
 
 * **forcepush:** add missing inputs and output ([3c106e7](https://github.com/TriPSs/conventional-changelog-action/commit/3c106e7c7cd3cf891e773a5079d5100ad1681a68))
-
-
-
-## [3.8.3](https://github.com/TriPSs/conventional-changelog-action/compare/v3.8.2...v3.8.3) (2021-03-09)
 
 
 
