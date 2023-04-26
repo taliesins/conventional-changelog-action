@@ -1,3 +1,7 @@
+## [3.19.2](https://github.com/TriPSs/conventional-changelog-action/compare/v3.19.1...v3.19.2) (2023-04-26)
+
+
+
 ## [3.19.1](https://github.com/TriPSs/conventional-changelog-action/compare/v3.19.0...v3.19.1) (2023-04-25)
 
 
@@ -31,15 +35,6 @@
 ### Features
 
 * **only-push-when-needed:** Only commit when there are changes and only push when there are changes ([1f0b412](https://github.com/TriPSs/conventional-changelog-action/commit/1f0b4123ca4c90d96e50fdccd02338f0b6936d34))
-
-
-
-## [3.8.4](https://github.com/TriPSs/conventional-changelog-action/compare/v3.8.3...v3.8.4) (2021-03-09)
-
-
-### Bug Fixes
-
-* **forcepush:** add missing inputs and output ([3c106e7](https://github.com/TriPSs/conventional-changelog-action/commit/3c106e7c7cd3cf891e773a5079d5100ad1681a68))
 
 
 
